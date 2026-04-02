@@ -36,8 +36,16 @@ export default function SecretGate({ onClose }: SecretGateProps) {
       const data = await response.json();
 
       if (response.ok && data.success) {
+        // 1. Store the user-part of the encryption key in RAM only
         sessionStorage.setItem('vault_key_fragment', sessionPin);
-        Cookies.set('auth_session', 'true', { expires: 1 });
+        
+        // 2. Set the secure auth session cookie
+        Cookies.set('auth_session', 'true', { 
+          expires: 1,            // Expire in 1 day
+          secure: true,         // Only send over HTTPS
+          sameSite: 'strict'    // Prevent CSRF attacks
+        });
+        
         router.push('/dashboard');
       } else {
         setError('Invalid credentials. Please try again.');
@@ -262,12 +270,6 @@ export default function SecretGate({ onClose }: SecretGateProps) {
           font-size: 10px;
           color: var(--text-muted);
           pointer-events: none;
-        }
-
-        .sg-divider {
-          height: 1px;
-          background: var(--border);
-          margin: 4px 0;
         }
 
         .sg-btn {

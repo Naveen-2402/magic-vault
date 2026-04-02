@@ -1,39 +1,70 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import Cookies from 'js-cookie';
-import { LogOut, Shield } from 'lucide-react';
+import { LogOut } from 'lucide-react';
+import SessionTimeout from '@/components/SessionTimeout';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   const handleLogout = () => {
-    // Clear the secret half-key from memory
+    // 1. Wipe the PIN from volatile memory (CRITICAL)
     sessionStorage.removeItem('vault_key_fragment');
-    // Clear the auth cookie
+    
+    // 2. Clear the auth session cookie
     Cookies.remove('auth_session');
-    // Kick back to landing page
+    
+    // 3. Terminate view and return to public portal
     router.push('/');
+    router.refresh();
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
-      <header className="bg-slate-900 text-white px-6 py-4 flex justify-between items-center shadow-lg">
-        <div className="flex items-center gap-2">
-          <Shield className="w-5 h-5 text-blue-400" />
-          <span className="font-bold tracking-tight uppercase text-sm">System Management Console</span>
+    <div className="min-h-screen bg-[#fcfcfd] flex flex-col">
+      {/* Silent Session Guard - Monitors inactivity */}
+      <SessionTimeout />
+
+      <header className="bg-slate-900 text-white px-8 py-3.5 flex justify-between items-center shadow-2xl border-b border-white/5">
+        <div className="flex items-center gap-3">
+          <div className="bg-white/10 p-1.5 rounded-lg">
+            <Image 
+              src="/logo.png" 
+              alt="Nexus Logo" 
+              width={20} 
+              height={20} 
+              className="brightness-0 invert"
+            />
+          </div>
+          <div className="flex flex-col">
+            <span className="font-bold tracking-[0.2em] uppercase text-[10px] leading-tight">
+              Nexus <span className="font-light opacity-60">Systems</span>
+            </span>
+            <span className="text-[8px] text-blue-400 font-mono uppercase tracking-tighter opacity-80">
+              Management Console v4.0.2
+            </span>
+          </div>
         </div>
+
         <button 
           onClick={handleLogout}
-          className="flex items-center gap-2 text-xs font-bold hover:text-red-400 transition-colors uppercase tracking-widest"
+          className="group flex items-center gap-2.5 text-[10px] font-bold text-slate-400 hover:text-red-400 transition-all uppercase tracking-[0.15em]"
         >
-          <LogOut className="w-4 h-4" />
+          <LogOut className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
           Terminate Session
         </button>
       </header>
-      <main className="flex-1 p-6 md:p-10 max-w-7xl mx-auto w-full">
+
+      <main className="flex-1 p-6 md:p-12 max-w-6xl mx-auto w-full animate-in fade-in duration-700">
         {children}
       </main>
+
+      <footer className="py-6 text-center border-t border-slate-100">
+        <p className="text-[10px] text-slate-300 uppercase tracking-widest font-medium">
+          Secure Environment // Authorization Required // © {new Date().getFullYear()} Nexus Systems Int.
+        </p>
+      </footer>
     </div>
   );
 }
