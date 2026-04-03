@@ -12,6 +12,7 @@ export async function DELETE(
     await query('DELETE FROM passwords WHERE id = $1', [id]);
     return NextResponse.json({ success: true });
   } catch (error) {
+    console.error('[DELETE /api/passwords]', error);
     return NextResponse.json({ error: 'Delete failed' }, { status: 500 });
   }
 }
@@ -25,7 +26,23 @@ export async function PUT(
   try {
     const { name, username, password, desc, pin } = await request.json();
 
-    // Re-encrypt because the password might have changed
+    // Guard: pin is required for encryption
+    if (!pin || typeof pin !== 'string' || pin.trim() === '') {
+      return NextResponse.json(
+        { error: 'Session PIN is missing. Please log out and log back in.' },
+        { status: 400 }
+      );
+    }
+
+    // Guard: password must exist to encrypt
+    if (!password || typeof password !== 'string') {
+      return NextResponse.json(
+        { error: 'Password field is required.' },
+        { status: 400 }
+      );
+    }
+
+    // Re-encrypt with the split key
     const { iv, content } = encrypt(password, pin);
 
     await query(
@@ -37,6 +54,7 @@ export async function PUT(
 
     return NextResponse.json({ success: true });
   } catch (error) {
+    console.error('[PUT /api/passwords]', error);
     return NextResponse.json({ error: 'Update failed' }, { status: 500 });
   }
 }
