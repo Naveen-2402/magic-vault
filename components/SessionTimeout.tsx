@@ -2,21 +2,16 @@
 
 import { useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import Cookies from 'js-cookie';
 
 const TIMEOUT_DURATION = 5 * 60 * 1000; // 5 Minutes
 
 export default function SessionTimeout() {
   const router = useRouter();
 
-  const handleLogout = useCallback(() => {
-    // 1. Wipe the PIN from volatile memory
+  const handleLogout = useCallback(async () => {
     sessionStorage.removeItem('vault_key_fragment');
-    // 2. Remove the auth cookie
-    Cookies.remove('auth_session');
-    // 3. Force redirect to landing page
+    await fetch('/api/auth/logout', { method: 'POST' }); // Server clears the cookie
     router.push('/');
-    // 4. Optional: Refresh to ensure state is totally reset
     router.refresh();
   }, [router]);
 

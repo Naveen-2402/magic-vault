@@ -2,21 +2,15 @@
 
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import Cookies from 'js-cookie';
 import { LogOut } from 'lucide-react';
 import SessionTimeout from '@/components/SessionTimeout';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
-  const handleLogout = () => {
-    // 1. Wipe the PIN from volatile memory (CRITICAL)
+  const handleLogout = async () => {
     sessionStorage.removeItem('vault_key_fragment');
-    
-    // 2. Clear the auth session cookie
-    Cookies.remove('auth_session');
-    
-    // 3. Terminate view and return to public portal
+    await fetch('/api/auth/logout', { method: 'POST' }); // Server clears the cookie
     router.push('/');
     router.refresh();
   };

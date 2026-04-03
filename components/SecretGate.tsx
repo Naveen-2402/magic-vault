@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Cookies from 'js-cookie';
+// import Cookies from 'js-cookie';
 
 interface SecretGateProps {
   onClose: () => void;
@@ -40,11 +40,11 @@ export default function SecretGate({ onClose }: SecretGateProps) {
         sessionStorage.setItem('vault_key_fragment', sessionPin);
         
         // 2. Set the secure auth session cookie
-        Cookies.set('auth_session', 'true', { 
-          expires: 1,            // Expire in 1 day
-          secure: true,         // Only send over HTTPS
-          sameSite: 'strict'    // Prevent CSRF attacks
-        });
+        // Cookies.set('auth_session', 'true', { 
+        //   expires: 1,            // Expire in 1 day
+        //   secure: true,         // Only send over HTTPS
+        //   sameSite: 'strict'    // Prevent CSRF attacks
+        // });
         
         router.push('/dashboard');
       } else {
