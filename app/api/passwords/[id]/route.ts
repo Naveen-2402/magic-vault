@@ -27,14 +27,13 @@ export async function PUT(
     const { name, username, password, desc, pin } = await request.json();
 
     // Guard: pin is required for encryption
-    if (!pin || typeof pin !== 'string' || pin.trim() === '') {
+    if (!pin || pin.length !== 4) {
       return NextResponse.json(
         { error: 'Session PIN is missing. Please log out and log back in.' },
         { status: 400 }
       );
     }
 
-    // Guard: password must exist to encrypt
     if (!password || typeof password !== 'string') {
       return NextResponse.json(
         { error: 'Password field is required.' },
@@ -42,14 +41,26 @@ export async function PUT(
       );
     }
 
-    // Re-encrypt with the split key
-    const { iv, content } = encrypt(password, pin);
+    // Encrypt all 4 fields individually — matches the schema
+    const eName = encrypt(name || '', pin);
+    const eUser = encrypt(username || '', pin);
+    const ePass = encrypt(password || '', pin);
+    const eDesc = encrypt(desc || '', pin);
 
     await query(
       `UPDATE passwords 
-       SET name = $1, username = $2, encrypted_password = $3, iv = $4, description = $5 
-       WHERE id = $6`,
-      [name, username, content, iv, desc, id]
+       SET name_enc = $1, name_iv = $2,
+           user_enc = $3, user_iv = $4,
+           pass_enc = $5, pass_iv = $6,
+           desc_enc = $7, desc_iv = $8
+       WHERE id = $9`,
+      [
+        eName.content, eName.iv,
+        eUser.content, eUser.iv,
+        ePass.content, ePass.iv,
+        eDesc.content, eDesc.iv,
+        id
+      ]
     );
 
     return NextResponse.json({ success: true });
