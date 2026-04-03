@@ -3,7 +3,7 @@
 import { useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 
-const TIMEOUT_DURATION = 5 * 60 * 1000; // 5 Minutes
+const TIMEOUT_DURATION = 1 * 60 * 1000; // 1 Minutes
 
 export default function SessionTimeout() {
   const router = useRouter();
