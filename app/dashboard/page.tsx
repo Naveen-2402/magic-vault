@@ -6,6 +6,8 @@ import Link from 'next/link';
 export default function CategoriesPage() {
   const [categories, setCategories] = useState<any[]>([]);
   const [newCat, setNewCat] = useState('');
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingName, setEditingName] = useState('');
 
   const fetchCategories = async () => {
     const res = await fetch('/api/categories');
@@ -24,11 +26,25 @@ export default function CategoriesPage() {
     fetchCategories();
   };
 
+  const editCategory = async (id: number) => {
+    if (!editingName.trim()) return;
+    await fetch(`/api/categories/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ name: editingName }),
+    });
+    setEditingId(null);
+    setEditingName('');
+    fetchCategories();
+  };
+
   const deleteCategory = async (id: number) => {
     if (!confirm('Delete this category and all saved passwords?')) return;
     await fetch(`/api/categories/${id}`, { method: 'DELETE' });
     fetchCategories();
   };
+  
+
+  
 
   useEffect(() => { fetchCategories(); }, []);
 
@@ -381,13 +397,41 @@ export default function CategoriesPage() {
                     <span className="cp-item-id">#{cat.id}</span>
                     <span className="cp-item-arrow">→</span>
                   </Link>
-                  <button
-                    onClick={() => deleteCategory(cat.id)}
-                    className="cp-delete"
-                    aria-label="Delete category"
-                  >
-                    ✕
-                  </button>
+                  {editingId === cat.id ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', paddingRight: '4px' }}>
+                      <input
+                        autoFocus
+                        value={editingName}
+                        onChange={(e) => setEditingName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') editCategory(cat.id);
+                          if (e.key === 'Escape') { setEditingId(null); setEditingName(''); }
+                        }}
+                        className="cp-form-input"
+                        style={{ width: '160px', padding: '6px 10px', fontSize: '13px' }}
+                      />
+                      <button onClick={() => editCategory(cat.id)} className="cp-form-btn" style={{ padding: '6px 12px', fontSize: '12px' }}>Save</button>
+                      <button onClick={() => { setEditingId(null); setEditingName(''); }} className="cp-delete" style={{ opacity: 1, color: '#b0b0a6' }}>✕</button>
+                    </div>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => { setEditingId(cat.id); setEditingName(cat.name); }}
+                        className="cp-delete"
+                        aria-label="Edit category"
+                        style={{ fontSize: '13px' }}
+                      >
+                        ✎
+                      </button>
+                      <button
+                        onClick={() => deleteCategory(cat.id)}
+                        className="cp-delete"
+                        aria-label="Delete category"
+                      >
+                        ✕
+                      </button>
+                    </>
+                  )}
                 </div>
                 {i < categories.length - 1 && <div className="cp-sep" />}
               </div>

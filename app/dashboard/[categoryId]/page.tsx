@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, use } from 'react';
-import { Eye, EyeOff, Plus, Trash2, ArrowLeft, ShieldCheck, Copy, Check, KeyRound } from 'lucide-react';
+import { Eye, EyeOff, Plus, Trash2, ArrowLeft, ShieldCheck, Copy, Check, KeyRound, Pencil } from 'lucide-react';
 import Link from 'next/link';
 
 export default function PasswordListPage({ params }: { params: Promise<{ categoryId: string }> }) {
@@ -12,8 +12,9 @@ export default function PasswordListPage({ params }: { params: Promise<{ categor
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [formData, setFormData] = useState({ name: '', user: '', pass: '', desc: '' });
+  const [editingEntry, setEditingEntry] = useState<any | null>(null);
+  const [editData, setEditData] = useState({ name: '', user: '', pass: '', desc: '' });
 
-  // Retrieve the 4-digit PIN stored during the "Secret Gate" login
   const pin = typeof window !== 'undefined' ? sessionStorage.getItem('vault_key_fragment') : '';
 
   const fetchData = async () => {
@@ -44,10 +45,26 @@ export default function PasswordListPage({ params }: { params: Promise<{ categor
         pin 
       }),
     });
-
     if (res.ok) {
       setFormData({ name: '', user: '', pass: '', desc: '' });
       setFormOpen(false);
+      fetchData();
+    }
+  };
+
+  const handleEdit = async (id: number) => {
+    const res = await fetch(`/api/passwords/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        name: editData.name,
+        username: editData.user,
+        password: editData.pass,
+        desc: editData.desc,
+        pin,
+      }),
+    });
+    if (res.ok) {
+      setEditingEntry(null);
       fetchData();
     }
   };
@@ -92,7 +109,7 @@ export default function PasswordListPage({ params }: { params: Promise<{ categor
             <h1 className="text-2xl font-semibold text-zinc-900 tracking-tight">Vault Management</h1>
           </div>
           <button 
-            onClick={() => setFormOpen(!formOpen)} 
+            onClick={() => { setFormOpen(!formOpen); setEditingEntry(null); }} 
             className="inline-flex items-center gap-2 bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition-all shadow-sm active:scale-95"
           >
             <Plus className="w-3.5 h-3.5" /> New Entry
@@ -134,54 +151,142 @@ export default function PasswordListPage({ params }: { params: Promise<{ categor
         <div className="space-y-3">
           {loading ? (
             <div className="flex flex-col items-center py-20 text-zinc-300">
-               <div className="w-5 h-5 border-2 border-zinc-300 border-t-zinc-800 rounded-full animate-spin mb-4" />
-               <p className="text-xs font-medium uppercase tracking-widest">Unlocking Vault...</p>
+              <div className="w-5 h-5 border-2 border-zinc-300 border-t-zinc-800 rounded-full animate-spin mb-4" />
+              <p className="text-xs font-medium uppercase tracking-widest">Unlocking Vault...</p>
             </div>
           ) : entries.length === 0 ? (
             <div className="text-center py-20 border-2 border-dashed border-zinc-200 rounded-3xl">
               <p className="text-zinc-400 text-sm font-medium">This directory is empty.</p>
             </div>
           ) : entries.map((entry) => (
-            <div key={entry.id} className="group bg-white border border-zinc-100 rounded-2xl p-1 shadow-sm hover:shadow-md transition-all flex items-center gap-4">
-              {/* Icon Letter */}
-              <div className="w-12 h-12 rounded-xl bg-zinc-900 text-white flex items-center justify-center text-lg font-bold shrink-0 ml-1">
-                {entry.name?.[0] || '?'}
-              </div>
-              
-              {/* Name & User */}
-              <div className="flex-1 min-w-0 py-2">
-                <p className="text-sm font-bold text-zinc-900 truncate">{entry.name}</p>
-                <p className="text-[11px] font-medium text-zinc-400 truncate tracking-wide">{entry.username || 'No Identifier'}</p>
-              </div>
+            <div key={entry.id} className="group bg-white border border-zinc-100 rounded-2xl shadow-sm hover:shadow-md transition-all">
 
-              {/* Password & Copy Group */}
-              <div className="flex items-center gap-1.5 bg-zinc-50 rounded-xl p-1.5 border border-zinc-100">
-                <input 
-                  type={showPass === entry.id ? 'text' : 'password'} 
-                  readOnly 
-                  value={entry.password}
-                  className="bg-transparent text-xs font-mono font-bold text-zinc-700 w-24 px-2 outline-none" 
-                />
-                <button onClick={() => setShowPass(showPass === entry.id ? null : entry.id)} className="p-1.5 text-zinc-400 hover:text-zinc-900 transition-colors">
-                  {showPass === entry.id ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                </button>
-                <div className="w-[1px] h-4 bg-zinc-200 mx-0.5" />
-                <button onClick={() => handleCopy(entry.id, entry.password)} className="p-1.5 text-zinc-400 hover:text-emerald-600 transition-colors">
-                  {copied === entry.id ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                </button>
-              </div>
+              {/* Edit Mode */}
+              {editingEntry?.id === entry.id ? (
+                <div className="p-5 space-y-4">
+                  <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Edit Record</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-[11px] text-zinc-500 font-bold uppercase mb-1.5 block">Service Name *</label>
+                      <input
+                        type="text"
+                        required
+                        className="w-full text-sm px-4 py-2.5 rounded-xl border border-zinc-200 bg-zinc-50 focus:bg-white outline-none focus:ring-2 focus:ring-zinc-900/5 transition"
+                        value={editData.name}
+                        onChange={e => setEditData({ ...editData, name: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] text-zinc-500 font-bold uppercase mb-1.5 block">Identifier / User</label>
+                      <input
+                        type="text"
+                        className="w-full text-sm px-4 py-2.5 rounded-xl border border-zinc-200 bg-zinc-50 focus:bg-white outline-none focus:ring-2 focus:ring-zinc-900/5 transition"
+                        value={editData.user}
+                        onChange={e => setEditData({ ...editData, user: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] text-zinc-500 font-bold uppercase mb-1.5 block">Secret Code *</label>
+                      <input
+                        type="password"
+                        required
+                        className="w-full text-sm px-4 py-2.5 rounded-xl border border-zinc-200 bg-zinc-50 focus:bg-white outline-none focus:ring-2 focus:ring-zinc-900/5 transition"
+                        value={editData.pass}
+                        onChange={e => setEditData({ ...editData, pass: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] text-zinc-500 font-bold uppercase mb-1.5 block">Internal Note</label>
+                      <input
+                        type="text"
+                        className="w-full text-sm px-4 py-2.5 rounded-xl border border-zinc-200 bg-zinc-50 focus:bg-white outline-none focus:ring-2 focus:ring-zinc-900/5 transition"
+                        value={editData.desc}
+                        onChange={e => setEditData({ ...editData, desc: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex gap-3 pt-1">
+                    <button
+                      onClick={() => handleEdit(entry.id)}
+                      className="bg-zinc-900 text-white text-xs font-bold uppercase tracking-widest px-6 py-3 rounded-xl hover:bg-zinc-800 transition shadow-md"
+                    >
+                      Encrypt & Update
+                    </button>
+                    <button
+                      onClick={() => setEditingEntry(null)}
+                      className="text-xs font-bold text-zinc-400 uppercase tracking-widest px-4 py-3 hover:text-zinc-600 transition"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
 
-              {/* Description & Delete */}
-              <div className="flex items-center gap-4 pr-4">
-                {entry.description && (
-                  <span className="hidden lg:block text-[10px] font-bold text-zinc-300 uppercase tracking-tighter bg-zinc-50 px-2 py-1 rounded">
-                    {entry.description}
-                  </span>
-                )}
-                <button onClick={() => handleDelete(entry.id)} className="opacity-0 group-hover:opacity-100 text-zinc-300 hover:text-red-500 transition-all p-2">
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
+              ) : (
+
+                /* View Mode */
+                <div className="p-1 flex items-center gap-4">
+                  {/* Icon Letter */}
+                  <div className="w-12 h-12 rounded-xl bg-zinc-900 text-white flex items-center justify-center text-lg font-bold shrink-0 ml-1">
+                    {entry.name?.[0] || '?'}
+                  </div>
+
+                  {/* Name & User */}
+                  <div className="flex-1 min-w-0 py-2">
+                    <p className="text-sm font-bold text-zinc-900 truncate">{entry.name}</p>
+                    <p className="text-[11px] font-medium text-zinc-400 truncate tracking-wide">{entry.username || 'No Identifier'}</p>
+                  </div>
+
+                  {/* Password & Copy Group */}
+                  <div className="flex items-center gap-1.5 bg-zinc-50 rounded-xl p-1.5 border border-zinc-100">
+                    <input
+                      type={showPass === entry.id ? 'text' : 'password'}
+                      readOnly
+                      value={entry.password}
+                      className="bg-transparent text-xs font-mono font-bold text-zinc-700 w-24 px-2 outline-none"
+                    />
+                    <button onClick={() => setShowPass(showPass === entry.id ? null : entry.id)} className="p-1.5 text-zinc-400 hover:text-zinc-900 transition-colors">
+                      {showPass === entry.id ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    </button>
+                    <div className="w-[1px] h-4 bg-zinc-200 mx-0.5" />
+                    <button onClick={() => handleCopy(entry.id, entry.password)} className="p-1.5 text-zinc-400 hover:text-emerald-600 transition-colors">
+                      {copied === entry.id ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
+
+                  {/* Description, Edit & Delete */}
+                  <div className="flex items-center gap-2 pr-4">
+                    {entry.description && (
+                      <span className="hidden lg:block text-[10px] font-bold text-zinc-300 uppercase tracking-tighter bg-zinc-50 px-2 py-1 rounded">
+                        {entry.description}
+                      </span>
+                    )}
+                    <button
+                      onClick={() => {
+                        setEditingEntry(entry);
+                        setEditData({
+                          name: entry.name,
+                          user: entry.username || '',
+                          pass: entry.password,
+                          desc: entry.description || '',
+                        });
+                        setFormOpen(false);
+                      }}
+                      className="opacity-0 group-hover:opacity-100 text-zinc-300 hover:text-zinc-700 transition-all p-2"
+                      aria-label="Edit entry"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(entry.id)}
+                      className="opacity-0 group-hover:opacity-100 text-zinc-300 hover:text-red-500 transition-all p-2"
+                      aria-label="Delete entry"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
+
             </div>
           ))}
         </div>
